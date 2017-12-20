@@ -441,7 +441,8 @@ function csiTrigger(on, params) {
       // sampleOn spec so that the hash is orthogonal to any other sampling in
       // amp.
       'sampleOn': 'a4a-csi-${pageViewId}',
-      'threshold': 1, // 1% sample
+      // DO NOT SUBMIT - 100% sampling for testing
+      'threshold': 100, // 1% sample
     },
     'selector': 'amp-ad',
     'selectionMethod': 'closest',
@@ -456,39 +457,36 @@ function csiTrigger(on, params) {
 export function getCsiAmpAnalyticsConfig() {
   return dict({
     'requests': {
-      'csi': 'https://csi.gstatic.com/csi?',
+      'csi': {
+        'baseUrl': 'https://csi.gstatic.com/csi' +
+          '?s=ampad&c=${correlator}&puid=${requestCount}~${timestamp}&',
+        'maxDelay': 0.4, // seconds
+      },
     },
     'transport': {'xhrpost': false},
     'triggers': {
       'adRequestStart': csiTrigger('ad-request-start', {
         // afs => ad fetch start
-        'met.a4a': 'afs_lvt.${viewerLastVisibleTime}~afs.${time}',
+        'met.a4a':
+            'afs_lvt_${slotId}.${viewerLastVisibleTime}~afs_${slotId}.${time}',
       }),
       'adResponseEnd': csiTrigger('ad-response-end', {
         // afe => ad fetch end
-        'met.a4a': 'afe.${time}',
+        'met.a4a': 'afe_${slotId}.${time}',
       }),
       'adRenderStart': csiTrigger('ad-render-start', {
         // ast => ad schedule time
         // ars => ad render start
         'met.a4a':
-            'ast.${scheduleTime}~ars_lvt.${viewerLastVisibleTime}~ars.${time}',
-        'qqid': '${qqid}',
+            'ast_${slotId}.${scheduleTime}' +
+            '~ars_lvt_${slotId}.${viewerLastVisibleTime}' +
+            '~ars_${slotId}.${time}',
+        'qqid': '${slotId}~${qqid}',
       }),
       'adIframeLoaded': csiTrigger('ad-iframe-loaded', {
         // ail => ad iframe loaded
-        'met.a4a': 'ail.${time}',
+        'met.a4a': 'ail_${slotId}.${time}',
       }),
-    },
-    'extraUrlParams': {
-      's': 'ampad',
-      'ctx': '2',
-      'c': '${correlator}',
-      'slotId': '${slotId}',
-      // Time that the beacon was actually sent. Note that there can be delays
-      // between the time at which the event is fired and when ${nowMs} is
-      // evaluated when the URL is built by amp-analytics.
-      'puid': '${requestCount}~${timestamp}',
     },
   });
 }
